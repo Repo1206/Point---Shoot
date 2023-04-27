@@ -65,6 +65,11 @@ document,
           ")";
         this.hasTrail = Math.random() > 0.5;
       }
+      restart() {
+        this.x = 100;
+        this.y = this.gameHeight - this.height;
+        this.frameY = 0;
+      }
       update(deltaTime) {
         if (this.y < 0 || this.y > canvas.height - this.height) {
           this.directionY = this.directionY * -1;
@@ -146,6 +151,11 @@ document,
       }
     }
 
+    this.keys = [];
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && gameOver) restart();
+    });
+
     let particles = [];
     class Particle {
       constructor(x, y, size, color) {
@@ -174,14 +184,6 @@ document,
       }
     }
 
-    function drawScore() {
-      ctx.fillStyle = "black";
-      ctx.fillText("Score:" + score, 50, 75);
-      ctx.fillStyle = "white";
-
-      ctx.fillText("Score:" + score, 55, 80);
-    }
-
     function updateHighScore() {
       if (score > highScore) {
         highScore = score;
@@ -189,41 +191,47 @@ document,
       }
     }
 
-    function drawHighScore() {
-      ctx.fillStyle = "black";
-      ctx.fillText("High Score:" + highScore, 50, 125);
-      ctx.fillStyle = "white";
-      ctx.fillText("High Score:" + highScore, 55, 130);
-    }
+    function displayStatusText(context) {
+      context.textAlign = "left";
 
-    function drawGameOver() {
-      ctx.textAlign = "center";
-      ctx.fillStyle = "black";
-      ctx.fillText(
-        `GAME OVER, Your score is ${score}`,
-        canvas.width / 2,
-        canvas.height / 2
-      );
-      ctx.textAlign = "center";
-      ctx.fillStyle = "white";
-      ctx.fillText(
-        `GAME OVER, Your score is ${score}`,
-        canvas.width / 2,
-        canvas.height / 2 + 5
-      );
-      ctx.fillStyle = "white";
-      ctx.fillRect(canvas.width / 2 - 100, canvas.height / 2 + 50, 200, 50);
-      ctx.fillStyle = "black";
-      ctx.fillText("RESTART", canvas.width / 2, canvas.height / 2 + 85);
+      context.font = "40px Helvetica";
+      context.fillStyle = "black";
+      context.fillText("score: " + score, 30, 50);
+      context.fillStyle = "white";
+      context.fillText("score: " + score, 32, 52);
+
+      context.font = "40px Helvetica";
+      context.fillStyle = "black";
+      context.fillText("High Score:" + highScore, 30, 100);
+      context.fillStyle = "white";
+      context.fillText("High Score:" + highScore, 32, 102);
+
+      if (gameOver) {
+        context.textAlign = "center";
+        context.fillStyle = "black";
+        context.fillText(
+          "Game Over, press Enter to restart",
+          canvas.width / 2,
+          200
+        );
+        context.fillStyle = "white";
+        context.fillText(
+          "Game Over, press Enter to restart",
+          canvas.width / 2 + 2,
+          202
+        );
+      }
     }
 
     let musicStarted = false;
-
-    window.addEventListener("click", function (e) {
+    window.addEventListener("load", function (e) {
       if (!musicStarted) {
         backgroundMusic.play();
         musicStarted = true;
       }
+    });
+
+    window.addEventListener("click", function (e) {
       const detectPixelColor = collisionCtx.getImageData(e.x, e.y, 1, 1);
       console.log(detectPixelColor);
       const pc = detectPixelColor.data;
@@ -248,9 +256,6 @@ document,
       // If the click was not on a raven, set gameOver to true
       if (!ravenClicked) {
         gameOver = true;
-      }
-      if (!ravenClicked) {
-        gameOver = true;
         updateHighScore(); // Update the high score when the game is over
       }
     });
@@ -266,19 +271,19 @@ document,
           y >= canvas.height / 2 + 50 &&
           y <= canvas.height / 2 + 100
         ) {
-          resetGame();
+          restart();
         }
       }
     });
 
     function restart() {
-      score = 0;
-      gameOver = false;
       lastTime = 0;
       timeToNextRaven = 0;
-      ravens = [];
       explosion = [];
       particles = [];
+      ravens = [];
+      score = 0;
+      gameOver = false;
       animate(0);
     }
     function animate(timestamp) {
@@ -306,10 +311,7 @@ document,
           return a.width - b.width;
         });
       }
-      drawScore();
-      drawHighScore();
 
-      drawScore();
       [...particles, ...ravens, ...explosion].forEach((object) =>
         object.update(deltaTime)
       );
@@ -319,6 +321,10 @@ document,
       ravens = ravens.filter((object) => !object.markedForDeletion);
       explosion = explosion.filter((object) => !object.markedForDeletion);
       particles = particles.filter((object) => !object.markedForDeletion);
+
+      // Call the displayStatusText function to draw the score and high score
+      displayStatusText(ctx);
+
       if (!gameOver) requestAnimationFrame(animate);
       else drawGameOver();
     }
